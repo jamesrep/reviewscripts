@@ -1,7 +1,7 @@
-﻿# James - 2020, 
+# James - 2020, 
 # This script just output some permission-sets of the Azure apps.
 
-param ([string] $file="output.csv")
+param ([string] $file="outputRolesnOath.csv", [string] $permissionFile="outputPermissions.csv")
 
 $delimiter = "|"
 $delimiter2 = ","
@@ -98,4 +98,32 @@ foreach($app in $allApps)
 }
 
 # Cleanup
+$swOut.Close()
+
+
+
+### --- Part 2 - Permissions for specific resources
+$swOut = new-object System.IO.StreamWriter( $permissionFile)
+
+$applications = Get-AzureADServicePrincipal -All $true | Where-Object {$_.ServicePrincipalType.ToLower().IndexOf("application") -ge 0}
+
+foreach ($sApp in $applications) 
+{
+	$resources = Get-AzureADServiceAppRoleAssignedTo -ObjectId $sApp.ObjectId 
+	
+	foreach ($obj in $resources)
+	{
+		for ($i=0; $i -lt ($applications).AppRoles.Count; $i++)
+		{
+			if (($applications).AppRoles[$i].Id -eq $obj.Id) 
+			{
+				$strOutput =  $obj.PrincipalDisplayName+"|"+$obj.ResourceDisplayName+"|"+$obj.PrincipalId +"|" +$appRoles[$i].Value      
+                write-host $strOutput       
+                   
+                $swOut.WriteLine($strOutput)    
+			}
+		}
+	}
+}
+
 $swOut.Close()
